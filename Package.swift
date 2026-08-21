@@ -7,7 +7,7 @@ let package = Package(
         .macOS(.v14)
     ],
     dependencies: [
-        .package(path: "../SwiftSci/SwiftSci")
+        .package(url: "https://github.com/Nodibell/SwiftSci.git", from: "3.2.0")
     ],
     targets: [
         .executableTarget(
