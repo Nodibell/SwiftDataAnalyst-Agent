@@ -7,6 +7,7 @@ let package = Package(
         .macOS(.v14)
     ],
     dependencies: [
+        .package(url: "https://github.com/google/flatbuffers.git", exact: "25.2.10"),
         .package(url: "https://github.com/Nodibell/SwiftSci.git", from: "3.2.0")
     ],
     targets: [
@@ -21,7 +22,8 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftDataAnalystTests",
-            dependencies: ["SwiftDataAnalyst"]
+            dependencies: [
+"SwiftDataAnalyst"]
         )
     ]
 )
