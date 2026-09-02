@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🤖 SwiftDataAnalyst-Agent — AI E-Commerce Intelligence</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1117; --card: #161b22; --border: #30363d;
+            --text: #f0f6fc; --sub: #8b949e;
+            --cyan: #58a6ff; --green: #3fb950; --amber: #d29922;
+            --purple: #bc8cff; --red: #f85149;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; padding: 24px; }
+        .header { border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+        h1 { font-size: 22px; font-weight: 700; color: var(--cyan); }
+        .sub { font-size: 13px; color: var(--sub); margin-top: 4px; }
+        .badge { background: #1f2937; border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 12px; color: var(--green); font-weight: 600; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+        .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+        .kpi-label { font-size: 11px; text-transform: uppercase; color: var(--sub); font-weight: 600; letter-spacing: 0.5px; }
+        .kpi-value { font-size: 22px; font-weight: 700; margin-top: 6px; }
+        .kpi-hint { font-size: 11px; color: var(--sub); margin-top: 3px; }
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+        @media (max-width: 1000px) { .charts-row { grid-template-columns: 1fr; } }
+        .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+        .react-trace { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 24px; }
+        .react-trace h3 { font-size: 14px; font-weight: 600; color: var(--amber); margin-bottom: 12px; }
+        .react-trace .query { font-size: 14px; color: var(--cyan); background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; }
+        .react-trace ol { padding-left: 20px; }
+        .react-trace li { font-size: 13px; color: var(--text); margin-bottom: 8px; line-height: 1.5; }
+        .final-answer { background: #0d261a; border: 1px solid #3fb950; border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 14px; color: var(--green); }
+        .footer { text-align: center; font-size: 12px; color: var(--sub); margin-top: 32px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>🤖 SwiftDataAnalyst-Agent — AI E-Commerce Intelligence</h1>
+            <p class="sub">Autonomous ReAct Agent · DataFrameAgentTool · SQLQueryTool · StatisticsTool · ChurnRiskProfiler</p>
+        </div>
+        <div class="badge">⚡ SwiftSci 3.5.0 · SwiftAgent</div>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi">
+            <div class="kpi-label">Segment Records</div>
+            <div class="kpi-value" style="color:var(--cyan)">105</div>
+            <div class="kpi-hint">Orders in query result</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">Total Revenue</div>
+            <div class="kpi-value" style="color:var(--green)">$167895</div>
+            <div class="kpi-hint">Gross Merchandise Value</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">Avg Order Value</div>
+            <div class="kpi-value" style="color:var(--green)">$1599</div>
+            <div class="kpi-hint">Mean AOV in segment</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">Median AOV</div>
+            <div class="kpi-value" style="color:var(--cyan)">$1420</div>
+            <div class="kpi-hint">P50 order value</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">VIP Customers</div>
+            <div class="kpi-value" style="color:var(--purple)">81</div>
+            <div class="kpi-hint">AOV ≥ $700</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">At-Risk Customers</div>
+            <div class="kpi-value" style="color:var(--red)">24</div>
+            <div class="kpi-hint">Churn risk > 75%</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">Avg Churn Risk</div>
+            <div class="kpi-value" style="color:var(--amber)">52.6%</div>
+            <div class="kpi-hint">Mean churn probability</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">Avg Customer LTV</div>
+            <div class="kpi-value" style="color:var(--cyan)">$5132</div>
+            <div class="kpi-hint">Lifetime value estimate</div>
+        </div>
+    </div>
+
+    <div class="react-trace">
+        <h3>⚙️ ReAct Agent Reasoning Trace</h3>
+        <div class="query">💬 Query: "Identify and profile our high value VIP customers in Electronics"</div>
+        <ol>
+            <li><b>Thought:</b> The user wants to identify VIP and high-value customers. I should first filter the dataset for VIP segment and high order values, then compute statistics on order_value. → SQLQuery</li>
+<li><b>Thought:</b> The user wants to identify VIP and high-value customers. I should first filter the dataset for VIP segment and high order values, then compute statistics on order_value. → SQLQuery</li>
+<li><b>Thought:</b> The user wants to identify VIP and high-value customers. I should first filter the dataset for VIP segment and high order values, then compute statistics on order_value. → SQLQuery</li>
+<li><b>Thought:</b> The user wants to identify VIP and high-value customers. I should first filter the dataset for VIP segment and high order values, then compute statistics on order_value. → SQLQuery</li>
+        </ol>
+        <div class="final-answer">✅ Final Answer: 📋 Query result: 105 rows
+   Columns: order_id, customer_id, age, country, channel, category, units, order_value, discount_pct, churn_risk, customer_ltv, segment
+   Total revenue in selection: $167894.77
+   Sample: order_id=10007 customer_id=1007 age=50.0 </div>
+    </div>
+
+    <div class="charts-row">
+        <div class="chart-card"><div id="revenueChart" style="height:300px"></div></div>
+        <div class="chart-card"><div id="churnChart" style="height:300px"></div></div>
+        <div class="chart-card"><div id="segChart" style="height:300px"></div></div>
+    </div>
+
+    <div class="footer">
+        Generated with <b>SwiftDataAnalyst-Agent</b> powered by <b>SwiftSci 3.5.0</b> · ReActAgent · DataFrameAgentTool · SwiftStats
+    </div>
+
+    <script>
+        const DARK = '#161b22'; const BORDER = '#30363d';
+
+        Plotly.newPlot('revenueChart', [{
+            x: ["Electronics","Fashion","Home & Garden","Books","Sports","Beauty","Automotive"], y: [133794,26225,15034,17883,16780,11095,53219],
+            type: 'bar', marker: { color: '#58a6ff' }
+        }], {
+            title: { text: '<b>Revenue by Category</b>', font: { color: '#f0f6fc', size: 14 } },
+            paper_bgcolor: DARK, plot_bgcolor: DARK,
+            xaxis: { color: '#8b949e', gridcolor: BORDER },
+            yaxis: { title: 'Revenue ($)', color: '#8b949e', gridcolor: BORDER },
+            margin: { t: 40, b: 60, l: 60, r: 20 }
+        }, { responsive: true });
+
+        Plotly.newPlot('churnChart', [{
+            labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+            values: [160, 162, 178],
+            type: 'pie',
+            marker: { colors: ['#3fb950', '#d29922', '#f85149'] },
+            textinfo: 'label+percent'
+        }], {
+            title: { text: '<b>Churn Risk Distribution</b>', font: { color: '#f0f6fc', size: 14 } },
+            paper_bgcolor: DARK, plot_bgcolor: DARK,
+            legend: { font: { color: '#f0f6fc' } },
+            margin: { t: 40, b: 20, l: 20, r: 20 }
+        }, { responsive: true });
+
+        Plotly.newPlot('segChart', [{
+            x: ["At-Risk","Returning","VIP","New"], y: [124,194,81,101],
+            type: 'bar',
+            marker: { color: ['#58a6ff', '#3fb950', '#bc8cff', '#f85149'] }
+        }], {
+            title: { text: '<b>Customer Segment Breakdown</b>', font: { color: '#f0f6fc', size: 14 } },
+            paper_bgcolor: DARK, plot_bgcolor: DARK,
+            xaxis: { color: '#8b949e', gridcolor: BORDER },
+            yaxis: { title: 'Count', color: '#8b949e', gridcolor: BORDER },
+            margin: { t: 40, b: 60, l: 60, r: 20 }
+        }, { responsive: true });
+    </script>
+</body>
+</html>

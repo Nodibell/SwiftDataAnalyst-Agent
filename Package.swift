@@ -7,23 +7,23 @@ let package = Package(
         .macOS(.v14)
     ],
     dependencies: [
-        .package(url: "https://github.com/google/flatbuffers.git", exact: "25.2.10"),
-        .package(url: "https://github.com/Nodibell/SwiftSci.git", from: "3.2.0")
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.0"),
+        .package(path: "../SwiftSci/SwiftSci")
     ],
     targets: [
         .executableTarget(
             name: "SwiftDataAnalyst",
             dependencies: [
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "SwiftDataFrame", package: "SwiftSci"),
                 .product(name: "SwiftAgent", package: "SwiftSci"),
-                .product(name: "SwiftDatabase", package: "SwiftSci"),
-                .product(name: "SwiftStats", package: "SwiftSci")
+                .product(name: "SwiftStats", package: "SwiftSci"),
+                .product(name: "SwiftVisualization", package: "SwiftSci")
             ]
         ),
         .testTarget(
             name: "SwiftDataAnalystTests",
-            dependencies: [
-"SwiftDataAnalyst"]
+            dependencies: ["SwiftDataAnalyst"]
         )
     ]
 )
