@@ -38,6 +38,7 @@ final class SwiftDataAnalystTests: XCTestCase {
         // VIP threshold is order_value >= 700 — all returned rows should meet it
         let vals = (result.filteredDataFrame[column: "order_value", as: Double.self]?.values ?? []).compactMap { $0 }
         for v in vals { XCTAssertGreaterThanOrEqual(v, 700.0) }
+        XCTAssertFalse(result.lineage.isEmpty)
     }
 
     func testAgentChurnQuery() async throws {
@@ -47,6 +48,7 @@ final class SwiftDataAnalystTests: XCTestCase {
 
         XCTAssertGreaterThanOrEqual(result.kpis.avgChurnRisk, 0.0)
         XCTAssertLessThanOrEqual(result.kpis.avgChurnRisk, 1.0)
+        XCTAssertFalse(result.lineage.isEmpty)
     }
 
     func testStatisticsToolDirectly() async throws {
@@ -77,6 +79,49 @@ final class SwiftDataAnalystTests: XCTestCase {
         let content = try String(contentsOfFile: tempPath)
         XCTAssertTrue(content.contains("Plotly.newPlot"))
         XCTAssertTrue(content.contains("SwiftDataAnalyst"))
+        XCTAssertTrue(content.contains("SwiftSci 3.6.0"))
         try? FileManager.default.removeItem(atPath: tempPath)
+    }
+
+    func testMultiAgentOrchestratorAnalysis() async throws {
+        let df = EcommerceDataGenerator.generateDataset(samples: 200, seed: 42)
+        let agent = DataAnalystAgent()
+        let result = try await agent.runMultiAgentAnalysis(df: df, userQuery: "high value VIP customers in Electronics")
+
+        XCTAssertGreaterThan(result.messageHistory.count, 3)
+        XCTAssertTrue(result.finalAnswer.contains("AI Multi-Agent Consensus Analysis Completed"))
+        XCTAssertGreaterThan(result.kpis.rowCount, 0)
+        XCTAssertFalse(result.lineage.isEmpty)
+
+        // Verify that specialized agents participated
+        let senders = Set(result.messageHistory.map { $0.sender })
+        XCTAssertTrue(senders.contains("QuerySpecializedAgent"))
+        XCTAssertTrue(senders.contains("StatsSpecializedAgent"))
+        XCTAssertTrue(senders.contains("RiskSpecializedAgent"))
+        XCTAssertTrue(senders.contains("SynthesisSpecializedAgent"))
+    }
+
+    func testMultiAgentChurnAnalysis() async throws {
+        let df = EcommerceDataGenerator.generateDataset(samples: 150, seed: 10)
+        let agent = DataAnalystAgent()
+        let result = try await agent.runMultiAgentAnalysis(df: df, userQuery: "churn risk analysis")
+
+        XCTAssertGreaterThanOrEqual(result.kpis.avgChurnRisk, 0.0)
+        XCTAssertLessThanOrEqual(result.kpis.avgChurnRisk, 1.0)
+        XCTAssertFalse(result.lineage.isEmpty)
+        XCTAssertTrue(result.finalAnswer.contains("AI Multi-Agent Consensus Analysis Completed"))
+    }
+
+    func testDataFrameLineageTracking() async throws {
+        let df = EcommerceDataGenerator.generateDataset(samples: 100, seed: 99)
+        let agent = DataAnalystAgent()
+        let result = try await agent.runMultiAgentAnalysis(df: df, userQuery: "VIP customers")
+
+        XCTAssertGreaterThan(result.lineage.count, 0)
+        for record in result.lineage {
+            XCTAssertGreaterThanOrEqual(record.stepIndex, 0)
+            XCTAssertFalse(record.operation.isEmpty)
+            XCTAssertGreaterThan(record.inputRows, 0)
+        }
     }
 }

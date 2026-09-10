@@ -1,13 +1,14 @@
 import Foundation
 import ArgumentParser
 import SwiftDataFrame
+import SwiftAgent
 
 @main
 struct SwiftDataAnalystCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "data-analyst",
         abstract: "🤖 SwiftDataAnalyst-Agent — Autonomous AI-Powered E-Commerce Data Intelligence CLI",
-        version: "3.5.0"
+        version: "3.6.0"
     )
 
     @Option(help: "Number of synthetic e-commerce orders to generate (default: 500)")
@@ -15,6 +16,9 @@ struct SwiftDataAnalystCLI: AsyncParsableCommand {
 
     @Option(help: "Natural language query for the AI analyst agent (default: VIP high-value analysis)")
     var query: String = "Identify and profile our high value VIP customers in Electronics"
+
+    @Option(name: .long, help: "Execution mode: 'multi-agent' (collaborative team) or 'react' (single agent). Default: multi-agent")
+    var mode: String = "multi-agent"
 
     @Option(name: .long, help: "Path to export interactive Plotly HTML dashboard (e.g. analyst_report.html)")
     var exportHtml: String?
@@ -28,7 +32,7 @@ struct SwiftDataAnalystCLI: AsyncParsableCommand {
     func run() async throws {
         print("╔══════════════════════════════════════════════════════════════════════╗")
         print("║  🤖 SwiftDataAnalyst-Agent — Autonomous AI E-Commerce Intelligence   ║")
-        print("║  Powered by SwiftSci 3.5.0 · SwiftAgent ReAct · SwiftDataFrame       ║")
+        print("║  Powered by SwiftSci 3.6.0 · MultiAgentOrchestrator & ReAct          ║")
         print("╚══════════════════════════════════════════════════════════════════════╝\n")
 
         print("📦 Ingesting e-commerce transaction dataset (\(samples) orders, 12 features)...")
@@ -39,33 +43,90 @@ struct SwiftDataAnalystCLI: AsyncParsableCommand {
         print("   Shape  : \(df.rowCount) rows × \(df.shape.columns) columns")
 
         print("\n💬 User Query: \"\(query)\"")
-        print("🔄 Initializing autonomous ReAct agent with 4 registered tools...\n")
+        print("🚀 Execution Mode: \(mode.uppercased())")
 
         let agent = DataAnalystAgent()
-        let result = try await agent.runAnalysis(df: df, userQuery: query)
+
+        let filteredDF: DataFrame
+        let kpis: SegmentKPIs
+        let ragContext: String
+        let finalAnswer: String
+        let lineage: [LineageRecord]
+
+        if mode.lowercased() == "react" {
+            print("🔄 Initializing autonomous ReAct agent with 4 registered tools...\n")
+            let result = try await agent.runAnalysis(df: df, userQuery: query)
+            filteredDF = result.filteredDataFrame
+            kpis = result.kpis
+            ragContext = result.ragContext
+            finalAnswer = result.finalAnswer
+            lineage = result.lineage
+
+            // Print ReAct Trace
+            print("\n⚙️ ReAct Agent Execution Trace:")
+            for (idx, step) in result.executionTrace.enumerated() {
+                print("   [\(idx + 1)] Thought  : \(step.thought.prefix(120))")
+                if let action = step.action, let input = step.actionInput {
+                    print("       Action   : \(action)")
+                    print("       Input    : \(input)")
+                }
+                if let obs = step.observation {
+                    let trimmed = obs.prefix(200).trimmingCharacters(in: .whitespacesAndNewlines)
+                    print("       Observe  : \(trimmed)")
+                }
+            }
+        } else {
+            print("👥 Assembling MultiAgentOrchestrator collaborative team:")
+            print("   • QuerySpecializedAgent  [DatabaseAnalyst]")
+            print("   • StatsSpecializedAgent  [Statistician]")
+            print("   • RiskSpecializedAgent   [RiskAnalyst]")
+            print("   • SynthesisSpecializedAgent [SynthesisLead]\n")
+
+            let result = try await agent.runMultiAgentAnalysis(df: df, userQuery: query)
+            filteredDF = result.filteredDataFrame
+            kpis = result.kpis
+            ragContext = result.ragContext
+            finalAnswer = result.finalAnswer
+            lineage = result.lineage
+
+            // Print Multi-Agent Message Bus History
+            print("📡 AgentMessageBus Inter-Agent Dialogue:")
+            for msg in result.messageHistory {
+                print("   🗣️ [\(msg.sender)] (\(msg.role)):")
+                let lines = msg.content.components(separatedBy: "\n")
+                for line in lines {
+                    if !line.isEmpty { print("       \(line)") }
+                }
+                if let results = msg.toolResults, !results.isEmpty {
+                    for r in results {
+                        let status = r.isError ? "❌ Error" : "✅ Output"
+                        print("       🛠️ [\(r.toolName)] \(status): \(r.output.prefix(100).trimmingCharacters(in: .whitespacesAndNewlines))")
+                    }
+                }
+            }
+        }
 
         // Print RAG Context summary
-        print("📋 RAG Context Profile (injected into LLM system prompt):")
-        for line in result.ragContext.components(separatedBy: "\n") {
+        print("\n📋 RAG Context Profile (injected into LLM system prompt):")
+        for line in ragContext.components(separatedBy: "\n") {
             if !line.isEmpty { print("   \(line)") }
         }
 
-        // Print ReAct Trace
-        print("\n⚙️ ReAct Agent Execution Trace:")
-        for (idx, step) in result.executionTrace.enumerated() {
-            print("   [\(idx + 1)] Thought  : \(step.thought.prefix(120))")
-            if let action = step.action, let input = step.actionInput {
-                print("       Action   : \(action)")
-                print("       Input    : \(input)")
-            }
-            if let obs = step.observation {
-                let trimmed = obs.prefix(200).trimmingCharacters(in: .whitespacesAndNewlines)
-                print("       Observe  : \(trimmed)")
+        // Print Final Consensus Answer
+        print("\n🎯 Synthesized Final Answer:")
+        for line in finalAnswer.components(separatedBy: "\n") {
+            if !line.isEmpty { print("   \(line)") }
+        }
+
+        // Print Lineage Audit Trail
+        if !lineage.isEmpty {
+            print("\n📜 Pipeline Data Lineage Audit Trail (\(lineage.count) steps):")
+            for record in lineage {
+                print("   [\(record.stepIndex)] \(record.operation) -> input: \(record.inputRows) rows, output: \(record.outputRows) rows")
             }
         }
 
         // Print KPI Dashboard
-        let kpis = result.kpis
         print("\n📊 Segment KPI Dashboard:")
         print("   ┌────────────────────────────────────────────────────────────┐")
         print("   │  Matched Orders        : \(kpis.rowCount) records")
@@ -85,19 +146,19 @@ struct SwiftDataAnalystCLI: AsyncParsableCommand {
         print("   └────────────────────────────────────────────────────────────┘")
 
         // Sample rows
-        let nr = min(5, result.filteredDataFrame.rowCount)
+        let nr = min(5, filteredDF.rowCount)
         if nr > 0 {
-            print("\n🔍 Sample Segment Records (\(nr) of \(result.filteredDataFrame.rowCount)):")
+            print("\n🔍 Sample Segment Records (\(nr) of \(filteredDF.rowCount)):")
             print("   +----------+-------------+--------------+-------+------------------+------------+")
             print("   | Order ID | Category    | Country      | Chan  | Order Value ($)  | Churn Risk |")
             print("   +----------+-------------+--------------+-------+------------------+------------+")
             for i in 0..<nr {
-                let oid  = result.filteredDataFrame[column: "order_id",    as: Int64.self]?[i]  ?? 0
-                let cat  = result.filteredDataFrame[column: "category",    as: String.self]?[i] ?? ""
-                let ctr  = result.filteredDataFrame[column: "country",     as: String.self]?[i] ?? ""
-                let chn  = result.filteredDataFrame[column: "channel",     as: String.self]?[i] ?? ""
-                let val  = result.filteredDataFrame[column: "order_value", as: Double.self]?[i] ?? 0.0
-                let churn = result.filteredDataFrame[column: "churn_risk", as: Double.self]?[i] ?? 0.0
+                let oid  = filteredDF[column: "order_id",    as: Int64.self]?[i]  ?? 0
+                let cat  = filteredDF[column: "category",    as: String.self]?[i] ?? ""
+                let ctr  = filteredDF[column: "country",     as: String.self]?[i] ?? ""
+                let chn  = filteredDF[column: "channel",     as: String.self]?[i] ?? ""
+                let val  = filteredDF[column: "order_value", as: Double.self]?[i] ?? 0.0
+                let churn = filteredDF[column: "churn_risk", as: Double.self]?[i] ?? 0.0
                 print(String(format: "   | %8d | %-11s | %-12s | %-5s | %16.2f | %9.1f%% |",
                     oid, (cat as NSString).utf8String!, (ctr as NSString).utf8String!,
                     (chn as NSString).utf8String!, val, churn * 100.0))
@@ -106,8 +167,17 @@ struct SwiftDataAnalystCLI: AsyncParsableCommand {
         }
 
         // Export HTML Dashboard
+        let syntheticResult = AgentRunResult(
+            query: query,
+            ragContext: ragContext,
+            executionTrace: [],
+            finalAnswer: finalAnswer,
+            filteredDataFrame: filteredDF,
+            kpis: kpis,
+            lineage: lineage
+        )
         let htmlPath = exportHtml ?? "analyst_dashboard.html"
-        try AnalystVisualizer.generateHTMLDashboard(result: result, fullDF: df, outputPath: htmlPath)
+        try AnalystVisualizer.generateHTMLDashboard(result: syntheticResult, fullDF: df, outputPath: htmlPath)
         print("\n📊 Interactive Plotly HTML Dashboard generated at: \(htmlPath)")
 
         if let parquetPath = exportParquet {

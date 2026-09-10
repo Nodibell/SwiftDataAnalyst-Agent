@@ -27,6 +27,53 @@ public struct AgentRunResult: Sendable {
     public let finalAnswer: String
     public let filteredDataFrame: DataFrame
     public let kpis: SegmentKPIs
+    public let lineage: [LineageRecord]
+
+    public init(
+        query: String,
+        ragContext: String,
+        executionTrace: [AgentStep],
+        finalAnswer: String,
+        filteredDataFrame: DataFrame,
+        kpis: SegmentKPIs,
+        lineage: [LineageRecord] = []
+    ) {
+        self.query = query
+        self.ragContext = ragContext
+        self.executionTrace = executionTrace
+        self.finalAnswer = finalAnswer
+        self.filteredDataFrame = filteredDataFrame
+        self.kpis = kpis
+        self.lineage = lineage
+    }
+}
+
+public struct MultiAgentRunResult: Sendable {
+    public let query: String
+    public let ragContext: String
+    public let messageHistory: [AgentMessage]
+    public let finalAnswer: String
+    public let filteredDataFrame: DataFrame
+    public let kpis: SegmentKPIs
+    public let lineage: [LineageRecord]
+
+    public init(
+        query: String,
+        ragContext: String,
+        messageHistory: [AgentMessage],
+        finalAnswer: String,
+        filteredDataFrame: DataFrame,
+        kpis: SegmentKPIs,
+        lineage: [LineageRecord] = []
+    ) {
+        self.query = query
+        self.ragContext = ragContext
+        self.messageHistory = messageHistory
+        self.finalAnswer = finalAnswer
+        self.filteredDataFrame = filteredDataFrame
+        self.kpis = kpis
+        self.lineage = lineage
+    }
 }
 
 // MARK: - SQL Query Tool
@@ -161,6 +208,122 @@ public struct ChurnRiskProfiler: AgentTool, Sendable {
     }
 }
 
+// MARK: - Specialized Multi-Agent Roles (SwiftSci 3.6.0)
+
+/// Specialized database agent responsible for structured data queries and filtering.
+public struct QuerySpecializedAgent: SpecializedAgent, Sendable {
+    public let name: String = "QuerySpecializedAgent"
+    public let role: String = "DatabaseAnalyst"
+    private let df: DataFrame
+
+    public init(dataframe: DataFrame) {
+        self.df = dataframe
+    }
+
+    public func process(message: AgentMessage, context: [AgentMessage]) async throws -> AgentMessage? {
+        guard !context.contains(where: { $0.sender == name }) else { return nil }
+
+        let userQuery = (context.first(where: { $0.role == "user" })?.content ?? message.content).lowercased()
+        let filterCmd: String
+        if userQuery.contains("vip") || userQuery.contains("high value") {
+            filterCmd = "filter order_value >= 700.0"
+        } else if userQuery.contains("electronics") {
+            filterCmd = "filter category == Electronics"
+        } else if userQuery.contains("churn") {
+            filterCmd = "filter churn_risk >= 0.66"
+        } else {
+            filterCmd = "head 10"
+        }
+
+        let call = AgentToolCall(toolName: "SQLQuery", arguments: filterCmd)
+        return AgentMessage(
+            sender: name,
+            role: role,
+            content: "Applied dataset query strategy for user query intent.",
+            toolCalls: [call]
+        )
+    }
+}
+
+/// Specialized statistical agent responsible for computing distributions and numeric metrics.
+public struct StatsSpecializedAgent: SpecializedAgent, Sendable {
+    public let name: String = "StatsSpecializedAgent"
+    public let role: String = "Statistician"
+    private let df: DataFrame
+
+    public init(dataframe: DataFrame) {
+        self.df = dataframe
+    }
+
+    public func process(message: AgentMessage, context: [AgentMessage]) async throws -> AgentMessage? {
+        guard !context.contains(where: { $0.sender == name }) else { return nil }
+
+        let call = AgentToolCall(toolName: "Statistics", arguments: "order_value")
+        return AgentMessage(
+            sender: name,
+            role: role,
+            content: "Computed distribution statistics for primary transaction metrics.",
+            toolCalls: [call]
+        )
+    }
+}
+
+/// Specialized risk analyst agent responsible for customer retention and churn cohorts.
+public struct RiskSpecializedAgent: SpecializedAgent, Sendable {
+    public let name: String = "RiskSpecializedAgent"
+    public let role: String = "RiskAnalyst"
+    private let df: DataFrame
+
+    public init(dataframe: DataFrame) {
+        self.df = dataframe
+    }
+
+    public func process(message: AgentMessage, context: [AgentMessage]) async throws -> AgentMessage? {
+        guard !context.contains(where: { $0.sender == name }) else { return nil }
+
+        let call = AgentToolCall(toolName: "ChurnRiskProfiler", arguments: "profile")
+        return AgentMessage(
+            sender: name,
+            role: role,
+            content: "Segmented customer cohorts across churn probability thresholds.",
+            toolCalls: [call]
+        )
+    }
+}
+
+/// Specialized synthesis lead responsible for synthesizing multi-agent findings into a final consensus report.
+public struct SynthesisSpecializedAgent: SpecializedAgent, Sendable {
+    public let name: String = "SynthesisSpecializedAgent"
+    public let role: String = "SynthesisLead"
+
+    public init() {}
+
+    public func process(message: AgentMessage, context: [AgentMessage]) async throws -> AgentMessage? {
+        guard !context.contains(where: { $0.sender == name }) else { return nil }
+
+        var findings: [String] = []
+        for msg in context {
+            if let results = msg.toolResults, !results.isEmpty {
+                for r in results {
+                    findings.append("• [\(r.toolName)]\n\(r.output.trimmingCharacters(in: .whitespacesAndNewlines))")
+                }
+            }
+        }
+
+        let summary = """
+        FINAL ANSWER: AI Multi-Agent Consensus Analysis Completed.
+        Synthesized findings from specialized agent team:
+        \(findings.joined(separator: "\n\n"))
+        """
+
+        return AgentMessage(
+            sender: name,
+            role: role,
+            content: summary
+        )
+    }
+}
+
 // MARK: - Orchestration Engine
 
 public final class DataAnalystAgent: Sendable {
@@ -168,6 +331,7 @@ public final class DataAnalystAgent: Sendable {
 
     public init() {}
 
+    /// Executes single-agent ReAct loop using SwiftSci 3.6.0 ReActAgent with early stopping and timeouts.
     public func runAnalysis(
         df: DataFrame,
         userQuery: String,
@@ -176,18 +340,16 @@ public final class DataAnalystAgent: Sendable {
         // 1. Build RAG Context profile (injected into LLM system prompt)
         let profile = ragGenerator.generateSummary(df: df, name: "EcommerceTransactions")
 
-        // 2. Register domain-specific Tools
-        let agent = ReActAgent(maxSteps: maxSteps)
+        // 2. Register domain-specific Tools with timeout safeguards
+        let agent = ReActAgent(maxSteps: maxSteps, toolTimeoutSeconds: 15.0)
         await agent.registerTool(DataFrameAgentTool(dataframe: df))
         await agent.registerTool(SQLQueryTool(dataframe: df))
         await agent.registerTool(StatisticsTool(dataframe: df))
         await agent.registerTool(ChurnRiskProfiler(dataframe: df))
 
         // 3. Deterministic mock LLM planner — derives action chain from user query
-        //    (In production replace this closure with an actual Gemini/GPT API call)
         let query = userQuery.lowercased()
         let (finalAnswer, trace) = try await agent.run(query: userQuery) { prompt in
-            // Parse query intent and emit structured ReAct-style response
             if query.contains("vip") || query.contains("high value") {
                 return """
                 Thought: The user wants to identify VIP and high-value customers. I should first filter the dataset for VIP segment and high order values, then compute statistics on order_value.
@@ -221,7 +383,7 @@ public final class DataAnalystAgent: Sendable {
             }
         }
 
-        // 4. Execute real DataFrame pipeline based on detected intent
+        // 4. Execute real DataFrame pipeline based on detected intent & record Lineage
         let evaluator = SwiftAgentEvaluator()
         var filteredDF = df
 
@@ -234,7 +396,7 @@ public final class DataAnalystAgent: Sendable {
         }
         filteredDF = try await evaluator.evaluate(command: "select order_id, customer_id, category, country, channel, order_value, customer_ltv, churn_risk, segment", on: filteredDF)
 
-        // 5. Compute analytical KPIs on the filtered segment
+        let lineage = await evaluator.lineage
         let kpis = computeKPIs(df: filteredDF, original: df)
 
         return AgentRunResult(
@@ -243,7 +405,68 @@ public final class DataAnalystAgent: Sendable {
             executionTrace: trace,
             finalAnswer: finalAnswer,
             filteredDataFrame: filteredDF,
-            kpis: kpis
+            kpis: kpis,
+            lineage: lineage
+        )
+    }
+
+    /// Executes multi-agent collaborative analysis using SwiftSci 3.6.0 MultiAgentOrchestrator across AgentMessageBus.
+    public func runMultiAgentAnalysis(
+        df: DataFrame,
+        userQuery: String,
+        maxRounds: Int = 4
+    ) async throws -> MultiAgentRunResult {
+        // 1. Build RAG Context profile
+        let profile = ragGenerator.generateSummary(df: df, name: "EcommerceTransactions")
+
+        // 2. Initialize MultiAgentOrchestrator and register shared tools
+        let orchestrator = MultiAgentOrchestrator(maxRounds: maxRounds)
+        await orchestrator.registerTool(DataFrameAgentTool(dataframe: df))
+        await orchestrator.registerTool(SQLQueryTool(dataframe: df))
+        await orchestrator.registerTool(StatisticsTool(dataframe: df))
+        await orchestrator.registerTool(ChurnRiskProfiler(dataframe: df))
+
+        // 3. Register specialized agents
+        await orchestrator.registerAgent(QuerySpecializedAgent(dataframe: df))
+        await orchestrator.registerAgent(StatsSpecializedAgent(dataframe: df))
+        await orchestrator.registerAgent(RiskSpecializedAgent(dataframe: df))
+        await orchestrator.registerAgent(SynthesisSpecializedAgent())
+
+        // 4. Execute collaborative orchestration loop
+        let sequence = [
+            "QuerySpecializedAgent",
+            "StatsSpecializedAgent",
+            "RiskSpecializedAgent",
+            "SynthesisSpecializedAgent"
+        ]
+        let finalAnswer = try await orchestrator.run(taskPrompt: userQuery, sequence: sequence)
+        let history = await orchestrator.messageBus.getHistory()
+
+        // 5. Execute real DataFrame pipeline & record Lineage
+        let evaluator = SwiftAgentEvaluator()
+        var filteredDF = df
+        let query = userQuery.lowercased()
+
+        if query.contains("vip") || query.contains("high value") {
+            filteredDF = try await evaluator.evaluate(command: "filter order_value >= 700.0", on: df)
+        } else if query.contains("electronics") {
+            filteredDF = try await evaluator.evaluate(command: "filter category == Electronics", on: df)
+        } else if query.contains("churn") {
+            filteredDF = try await evaluator.evaluate(command: "filter churn_risk >= 0.66", on: df)
+        }
+        filteredDF = try await evaluator.evaluate(command: "select order_id, customer_id, category, country, channel, order_value, customer_ltv, churn_risk, segment", on: filteredDF)
+
+        let lineage = await evaluator.lineage
+        let kpis = computeKPIs(df: filteredDF, original: df)
+
+        return MultiAgentRunResult(
+            query: userQuery,
+            ragContext: profile,
+            messageHistory: history,
+            finalAnswer: finalAnswer,
+            filteredDataFrame: filteredDF,
+            kpis: kpis,
+            lineage: lineage
         )
     }
 

@@ -41,65 +41,62 @@
             <h1>🤖 SwiftDataAnalyst-Agent — AI E-Commerce Intelligence</h1>
             <p class="sub">Autonomous ReAct Agent · DataFrameAgentTool · SQLQueryTool · StatisticsTool · ChurnRiskProfiler</p>
         </div>
-        <div class="badge">⚡ SwiftSci 3.5.0 · SwiftAgent</div>
+        <div class="badge">⚡ SwiftSci 3.6.0 · SwiftAgent MultiAgent</div>
     </div>
 
     <div class="kpi-grid">
         <div class="kpi">
             <div class="kpi-label">Segment Records</div>
-            <div class="kpi-value" style="color:var(--cyan)">105</div>
+            <div class="kpi-value" style="color:var(--cyan)">35</div>
             <div class="kpi-hint">Orders in query result</div>
         </div>
         <div class="kpi">
             <div class="kpi-label">Total Revenue</div>
-            <div class="kpi-value" style="color:var(--green)">$167895</div>
+            <div class="kpi-value" style="color:var(--green)">$26556</div>
             <div class="kpi-hint">Gross Merchandise Value</div>
         </div>
         <div class="kpi">
             <div class="kpi-label">Avg Order Value</div>
-            <div class="kpi-value" style="color:var(--green)">$1599</div>
+            <div class="kpi-value" style="color:var(--green)">$759</div>
             <div class="kpi-hint">Mean AOV in segment</div>
         </div>
         <div class="kpi">
             <div class="kpi-label">Median AOV</div>
-            <div class="kpi-value" style="color:var(--cyan)">$1420</div>
+            <div class="kpi-value" style="color:var(--cyan)">$444</div>
             <div class="kpi-hint">P50 order value</div>
         </div>
         <div class="kpi">
             <div class="kpi-label">VIP Customers</div>
-            <div class="kpi-value" style="color:var(--purple)">81</div>
+            <div class="kpi-value" style="color:var(--purple)">5</div>
             <div class="kpi-hint">AOV ≥ $700</div>
         </div>
         <div class="kpi">
             <div class="kpi-label">At-Risk Customers</div>
-            <div class="kpi-value" style="color:var(--red)">24</div>
+            <div class="kpi-value" style="color:var(--red)">22</div>
             <div class="kpi-hint">Churn risk > 75%</div>
         </div>
         <div class="kpi">
             <div class="kpi-label">Avg Churn Risk</div>
-            <div class="kpi-value" style="color:var(--amber)">52.6%</div>
+            <div class="kpi-value" style="color:var(--amber)">80.9%</div>
             <div class="kpi-hint">Mean churn probability</div>
         </div>
         <div class="kpi">
             <div class="kpi-label">Avg Customer LTV</div>
-            <div class="kpi-value" style="color:var(--cyan)">$5132</div>
+            <div class="kpi-value" style="color:var(--cyan)">$2442</div>
             <div class="kpi-hint">Lifetime value estimate</div>
         </div>
     </div>
 
     <div class="react-trace">
         <h3>⚙️ ReAct Agent Reasoning Trace</h3>
-        <div class="query">💬 Query: "Identify and profile our high value VIP customers in Electronics"</div>
+        <div class="query">💬 Query: "churn risk"</div>
         <ol>
-            <li><b>Thought:</b> The user wants to identify VIP and high-value customers. I should first filter the dataset for VIP segment and high order values, then compute statistics on order_value. → SQLQuery</li>
-<li><b>Thought:</b> The user wants to identify VIP and high-value customers. I should first filter the dataset for VIP segment and high order values, then compute statistics on order_value. → SQLQuery</li>
-<li><b>Thought:</b> The user wants to identify VIP and high-value customers. I should first filter the dataset for VIP segment and high order values, then compute statistics on order_value. → SQLQuery</li>
-<li><b>Thought:</b> The user wants to identify VIP and high-value customers. I should first filter the dataset for VIP segment and high order values, then compute statistics on order_value. → SQLQuery</li>
+            <li>Direct answer returned (no tool call required)</li>
         </ol>
-        <div class="final-answer">✅ Final Answer: 📋 Query result: 105 rows
-   Columns: order_id, customer_id, age, country, channel, category, units, order_value, discount_pct, churn_risk, customer_ltv, segment
-   Total revenue in selection: $167894.77
-   Sample: order_id=10007 customer_id=1007 age=50.0 </div>
+        <div class="final-answer">✅ Final Answer: 🔴 Churn Risk Segmentation (100 customers):
+   Low  Risk (< 33%) : 24  customers · Avg LTV $2245.25
+   Med  Risk (33-66%): 41  customers · Avg LTV $1931.72
+   High Risk (> 66%) : 35 customers · Avg LTV $2441.51</div>
     </div>
 
     <div class="charts-row">
@@ -109,14 +106,14 @@
     </div>
 
     <div class="footer">
-        Generated with <b>SwiftDataAnalyst-Agent</b> powered by <b>SwiftSci 3.5.0</b> · ReActAgent · DataFrameAgentTool · SwiftStats
+        Generated with <b>SwiftDataAnalyst-Agent</b> powered by <b>SwiftSci 3.6.0</b> · MultiAgentOrchestrator · ReActAgent · SwiftDataFrame · SwiftStats
     </div>
 
     <script>
         const DARK = '#161b22'; const BORDER = '#30363d';
 
         Plotly.newPlot('revenueChart', [{
-            x: ["Electronics","Fashion","Home & Garden","Books","Sports","Beauty","Automotive"], y: [133794,26225,15034,17883,16780,11095,53219],
+            x: ["Electronics","Fashion","Home & Garden","Books","Sports","Beauty","Automotive"], y: [36650,3378,3186,2297,2688,1478,17064],
             type: 'bar', marker: { color: '#58a6ff' }
         }], {
             title: { text: '<b>Revenue by Category</b>', font: { color: '#f0f6fc', size: 14 } },
@@ -128,7 +125,7 @@
 
         Plotly.newPlot('churnChart', [{
             labels: ['Low Risk', 'Medium Risk', 'High Risk'],
-            values: [160, 162, 178],
+            values: [24, 41, 35],
             type: 'pie',
             marker: { colors: ['#3fb950', '#d29922', '#f85149'] },
             textinfo: 'label+percent'
@@ -140,7 +137,7 @@
         }, { responsive: true });
 
         Plotly.newPlot('segChart', [{
-            x: ["At-Risk","Returning","VIP","New"], y: [124,194,81,101],
+            x: ["At-Risk","New","Returning","VIP"], y: [22,22,37,19],
             type: 'bar',
             marker: { color: ['#58a6ff', '#3fb950', '#bc8cff', '#f85149'] }
         }], {

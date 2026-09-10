@@ -86,7 +86,7 @@ public enum AnalystVisualizer {
                     <h1>🤖 SwiftDataAnalyst-Agent — AI E-Commerce Intelligence</h1>
                     <p class="sub">Autonomous ReAct Agent · DataFrameAgentTool · SQLQueryTool · StatisticsTool · ChurnRiskProfiler</p>
                 </div>
-                <div class="badge">⚡ SwiftSci 3.5.0 · SwiftAgent</div>
+                <div class="badge">⚡ SwiftSci 3.6.0 · SwiftAgent MultiAgent</div>
             </div>
 
             <div class="kpi-grid">
@@ -148,7 +148,7 @@ public enum AnalystVisualizer {
             </div>
 
             <div class="footer">
-                Generated with <b>SwiftDataAnalyst-Agent</b> powered by <b>SwiftSci 3.5.0</b> · ReActAgent · DataFrameAgentTool · SwiftStats
+                Generated with <b>SwiftDataAnalyst-Agent</b> powered by <b>SwiftSci 3.6.0</b> · MultiAgentOrchestrator · ReActAgent · SwiftDataFrame · SwiftStats
             </div>
 
             <script>
